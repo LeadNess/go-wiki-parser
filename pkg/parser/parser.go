@@ -2,29 +2,35 @@ package parser
 
 import (
 	"encoding/xml"
-	"fmt"
 	"io"
 	"log"
 	"os"
+
+	mongo "../mongodb"
 )
-type Article struct {
-	Title string
-	Text  map[string]interface{}
-}
 
 
 type xmlField struct {
 	Data string `xml:",chardata"`
 }
 
-func ParseWikiXml(xmlPath string) error {
-	f, err := os.Open(xmlPath)
+func ParseWikiXml(xmlFilePath, connStr string) error {
+	f, err := os.Open(xmlFilePath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
+	storage, err := mongo.NewStorage(connStr)
+	if err != nil {
+		return err
+	}
+
+	parser := NewWikiParser()
 	d := xml.NewDecoder(f)
+	articlesCount := 0
+
+	var article mongo.Article
 	for {
 		tok, err := d.Token()
 		if tok == nil || err == io.EOF {
@@ -33,8 +39,6 @@ func ParseWikiXml(xmlPath string) error {
 			log.Printf("Error decoding token: %s", err)
 		}
 
-		parser := NewWikiParser()
-		var article Article
 		switch ty := tok.(type) {
 		case xml.StartElement:
 			if ty.Name.Local == "title" {
@@ -42,7 +46,9 @@ func ParseWikiXml(xmlPath string) error {
 				if err = d.DecodeElement(&field, &ty); err != nil {
 					log.Fatalf("Error decoding item: %s", err)
 				}
-				article.Title = field.Data
+				article = mongo.Article{
+					Title: field.Data,
+				}
 			} else if ty.Name.Local == "text" {
 				var field xmlField
 				if err = d.DecodeElement(&field, &ty); err != nil {
@@ -52,10 +58,18 @@ func ParseWikiXml(xmlPath string) error {
 				titlesSlice := parser.GetTitles(articleText)
 				for i, text := range parser.SplitText(articleText) {
 					processedText, refsSlice := parser.ProcessText(text)
-					article.Text[titlesSlice[i]] = map[string]interface{}{
-						"text": processedText,
-						"refs": refsSlice,
+					article.Text[titlesSlice[i]] = mongo.ArticlePart{
+						Text: processedText,
+						Refs: refsSlice,
 					}
+				}
+				if err := storage.InsertArticle(article); err != nil {
+					log.Printf("error: %v\n", err)
+				} else {
+					articlesCount += 1
+				}
+				if articlesCount % 100000 == 0 {
+					log.Printf("loaded to mongo %d articles", articlesCount)
 				}
 			}
 		default:
