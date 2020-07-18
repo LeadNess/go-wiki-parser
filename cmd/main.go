@@ -12,11 +12,6 @@ const (
 	xmlPath = "/home/leadness/Загрузки/ruwiki-20200701-pages-articles-multistream.xml"
 )
 
-
-type location struct {
-	Data string `xml:",chardata"`
-}
-
 func main() {
 	f, err := os.Open(xmlPath)
 	if err != nil {
