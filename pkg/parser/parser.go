@@ -8,7 +8,6 @@ import (
 type TextProcessor interface {
 	removeCursive(text string) string
 	removeHTML(text string) string
-	removeComments(text string) string
 	removeLists(text string) string
 	removeStrong(text string) string
 	removeMultipleLinesRefs(text string) string
@@ -30,12 +29,12 @@ type WikiParser struct {
 func NewWikiParser() *WikiParser {
 	return &WikiParser{
 		titlesRe:            regexp.MustCompile(`== [\w ]+ ==`),
-		refsRe:              regexp.MustCompile(`\[\[(.*?)\]\]`),
+		refsRe:              regexp.MustCompile(`\[\[(.*?)]]`),
 		listsRe:             regexp.MustCompile(`{\|[\S\n ]+\|}`),
 		figureBracketsRe:    regexp.MustCompile(`{{(.*?)}}`),
 		htmlRe:              regexp.MustCompile(`<(.*?)>`),
-		cursiveRe:           regexp.MustCompile(`\'\'(.*?)\'\'`),
-		strongRe:            regexp.MustCompile(`\'\'\'(.*?)\'\'\'`),
+		cursiveRe:           regexp.MustCompile(`''(.*?)''`),
+		strongRe:            regexp.MustCompile(`'''(.*?)'''`),
 		multipleLinesRefsRe: regexp.MustCompile(`{{[^}]+}}`),
 	}	
 }
@@ -88,3 +87,34 @@ func (w *WikiParser) processFigureBrackets(text string) string {
 	return processedText
 }
 
+func (w *WikiParser) removeCursive(text string) string {
+	var processedText string
+	for _, matchStr := range w.cursiveRe.FindAllString(text, -1) {
+		processedText = strings.Replace(processedText, `''` + matchStr + `''`, matchStr, 1)
+	}
+	return processedText
+}
+
+func (w *WikiParser) removeStrong(text string) string {
+	var processedText string
+	for _, matchStr := range w.strongRe.FindAllString(text, -1) {
+		processedText = strings.Replace(processedText, `'''` + matchStr + `'''`, matchStr, 1)
+	}
+	return processedText
+}
+
+func (w *WikiParser) removeHTML(text string) string {
+	var processedText string
+	for _, matchStr := range w.htmlRe.FindAllString(text, -1) {
+		processedText = strings.Replace(processedText, `<` + matchStr + `>`, "", 1)
+	}
+	return processedText
+}
+
+func (w *WikiParser) removeMultipleLinesRefs(text string) string {
+	var processedText string
+	for _, matchStr := range w.multipleLinesRefsRe.FindAllString(text, -1) {
+		processedText = strings.Replace(processedText, matchStr, "", 1)
+	}
+	return processedText
+}
