@@ -10,6 +10,7 @@ type TextProcessor interface {
 	removeHTML(text string) string
 	removeLists(text string) string
 	removeStrong(text string) string
+	removeInternetRefs(text string) string
 	removeMultipleLinesRefs(text string) string
 
 	processFigureBrackets(text string) string
@@ -26,24 +27,32 @@ type WikiTextProcessor struct {
 	htmlRe              *regexp.Regexp
 	cursiveRe           *regexp.Regexp
 	strongRe            *regexp.Regexp
+	internetRefsRe      *regexp.Regexp
 	multipleLinesRefsRe *regexp.Regexp
 }
 
 func NewWikiTextProcessor() *WikiTextProcessor {
 	return &WikiTextProcessor{
-		titlesRe:            regexp.MustCompile(`== [\w ]+ ==`),
+		titlesRe:            regexp.MustCompile(`== (.*?) ==`),
 		refsRe:              regexp.MustCompile(`\[\[(.*?)]]`),
-		listsRe:             regexp.MustCompile(`{\|[\S\n ]+\|}`),
+		internetRefsRe:      regexp.MustCompile(`\[(.*?)]`),
+		listsRe:             regexp.MustCompile(`{\|(.*?\n)\|}`),
 		figureBracketsRe:    regexp.MustCompile(`{{(.*?)}}`),
 		htmlRe:              regexp.MustCompile(`<(.*?)>`),
 		cursiveRe:           regexp.MustCompile(`''(.*?)''`),
 		strongRe:            regexp.MustCompile(`'''(.*?)'''`),
-		multipleLinesRefsRe: regexp.MustCompile(`{{[^}]+}}`),
+		multipleLinesRefsRe: regexp.MustCompile(`{{(^})}}`),
 	}	
 }
 
 func (w *WikiTextProcessor) GetTitles(text string) []string {
-	return append([]string{"Заголовок"}, w.titlesRe.FindAllString(text, -1)...)
+	titlesSlice := []string{"Заголовок"}
+	for _, title := range w.titlesRe.FindAllString(text, -1) {
+		title := strings.Replace(title, ".", " ", -1)
+		title = strings.Trim(title, "=")
+		titlesSlice = append(titlesSlice, strings.TrimSpace(title))
+	}
+	return titlesSlice
 }
 
 func (w *WikiTextProcessor) SplitText(text string) []string {
@@ -51,10 +60,11 @@ func (w *WikiTextProcessor) SplitText(text string) []string {
 }
 
 func (w *WikiTextProcessor) processRefs(text string) (string, []string) {
+	processedText := text
 	var refsSlice []string
-	var processedText, textRef, externalRef string
+	var textRef, externalRef string
 	for _, matchStr := range w.refsRe.FindAllString(text, -1) {
-		bufSlice := strings.Split(matchStr, "|")
+		bufSlice := strings.Split(matchStr[2:len(matchStr) - 2], "|")
 		if len(bufSlice) == 2 {
 			externalRef, textRef = bufSlice[0], bufSlice[1]
 			refsSlice = append(refsSlice, externalRef)
@@ -64,74 +74,69 @@ func (w *WikiTextProcessor) processRefs(text string) (string, []string) {
 		} else if strings.Contains(matchStr, "Файл:") {
 			textRef = ""
 		}
-		processedText = strings.Replace(processedText, "[[" + matchStr + "]]", textRef, 1)
+		processedText = strings.Replace(processedText, matchStr, textRef, 1)
 	}
 	return processedText, refsSlice
 }
 
 func (w *WikiTextProcessor) removeLists(text string) string {
-	var processedText string
-	for _, matchStr := range w.listsRe.FindAllString(text, -1) {
-		processedText = strings.Replace(processedText, matchStr, "", 1)
-	}
-	return processedText
+	return w.listsRe.ReplaceAllString(text, "")
 }
 
 func (w *WikiTextProcessor) processFigureBrackets(text string) string {
-	var processedText string
+	processedText := text
 	for _, matchStr := range w.figureBracketsRe.FindAllString(text, -1) {
-		bufSlice := strings.Split(matchStr, "|")
+		bufSlice := strings.Split(matchStr[2:len(matchStr) - 2], "|")
 		if len(bufSlice) == 2 {
-			processedText = strings.Replace(processedText, "{{" + matchStr + "}}", bufSlice[1], 1)
+			processedText = strings.Replace(processedText, matchStr, bufSlice[1], 1)
 		} else {
-			processedText = strings.Replace(processedText, "{{" + matchStr + "}}", "", 1)
+			processedText = strings.Replace(processedText, matchStr, "", 1)
 		}
 	}
 	return processedText
 }
 
 func (w *WikiTextProcessor) removeCursive(text string) string {
-	var processedText string
+	processedText := text
 	for _, matchStr := range w.cursiveRe.FindAllString(text, -1) {
-		processedText = strings.Replace(processedText, `''` + matchStr + `''`, matchStr, 1)
+		processedText = strings.Replace(processedText, matchStr, matchStr[2:len(matchStr) - 2], 1)
 	}
 	return processedText
 }
 
 func (w *WikiTextProcessor) removeStrong(text string) string {
-	var processedText string
+	processedText := text
 	for _, matchStr := range w.strongRe.FindAllString(text, -1) {
-		processedText = strings.Replace(processedText, `'''` + matchStr + `'''`, matchStr, 1)
+		processedText = strings.Replace(processedText, matchStr, matchStr[3:len(matchStr) - 3], 1)
 	}
 	return processedText
 }
 
 func (w *WikiTextProcessor) removeHTML(text string) string {
-	var processedText string
-	for _, matchStr := range w.htmlRe.FindAllString(text, -1) {
-		processedText = strings.Replace(processedText, `<` + matchStr + `>`, "", 1)
-	}
-	return processedText
+	return w.htmlRe.ReplaceAllString(text, "")
 }
 
 func (w *WikiTextProcessor) removeMultipleLinesRefs(text string) string {
-	var processedText string
-	for _, matchStr := range w.multipleLinesRefsRe.FindAllString(text, -1) {
-		processedText = strings.Replace(processedText, matchStr, "", 1)
-	}
-	return processedText
+	return w.multipleLinesRefsRe.ReplaceAllString(text, "")
+}
+
+func (w *WikiTextProcessor) removeInternetRefs(text string) string {
+	return w.internetRefsRe.ReplaceAllString(text, "")
 }
 
 func (w *WikiTextProcessor) ProcessText(text string) (string, []string) {
-	processedText := w.removeCursive(text)
-	processedText = w.removeHTML(text)
-	processedText = w.removeStrong(text)
-	processedText = w.processFigureBrackets(text)
+	processedText := strings.Replace(text, "\n", "", -1)
+	processedText = strings.Trim(processedText, "=")
 
-	processedText = strings.Replace(processedText, "\n", "", -1)
-	processedText = strings.Replace(processedText, "\xa0", " ", -1)
+	processedText = w.removeCursive(processedText)
+	processedText = w.removeHTML(processedText)
+	processedText = w.removeStrong(processedText)
+	processedText = w.processFigureBrackets(processedText)
 
-	processedText = w.removeLists(text)
-	processedText = w.removeMultipleLinesRefs(text)
-	return w.processRefs(processedText)
+	processedText, refsSlice := w.processRefs(processedText)
+
+	processedText = w.removeLists(processedText)
+	processedText = w.removeMultipleLinesRefs(processedText)
+	processedText = w.removeInternetRefs(processedText)
+	return processedText, refsSlice
 }
