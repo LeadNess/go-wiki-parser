@@ -14,20 +14,22 @@ type xmlField struct {
 	Data string `xml:",chardata"`
 }
 
-func ParseWikiXml(xmlFilePath, connStr string) error {
-	f, err := os.Open(xmlFilePath)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
+type WikiParser struct {
+	file          *os.File
+	storage       *mongo.Storage
+	textProcessor *WikiTextProcessor
+}
 
-	storage, err := mongo.NewStorage(connStr)
-	if err != nil {
-		return err
+func NewWikiParser(file *os.File, storage *mongo.Storage) *WikiParser {
+	return &WikiParser{
+		file:          file,
+		storage:       storage,
+		textProcessor: NewWikiTextProcessor(),
 	}
+}
 
-	parser := NewWikiParser()
-	d := xml.NewDecoder(f)
+func (p *WikiParser) Parse() {
+	d := xml.NewDecoder(p.file)
 	articlesCount := 0
 
 	var article mongo.Article
@@ -48,6 +50,7 @@ func ParseWikiXml(xmlFilePath, connStr string) error {
 				}
 				article = mongo.Article{
 					Title: field.Data,
+					Text: make(map[string]mongo.ArticlePart),
 				}
 			} else if ty.Name.Local == "text" {
 				var field xmlField
@@ -55,21 +58,21 @@ func ParseWikiXml(xmlFilePath, connStr string) error {
 					log.Fatalf("Error decoding item: %s", err)
 				}
 				articleText := field.Data
-				titlesSlice := parser.GetTitles(articleText)
-				for i, text := range parser.SplitText(articleText) {
-					processedText, refsSlice := parser.ProcessText(text)
+				titlesSlice := p.textProcessor.GetTitles(articleText)
+				for i, text := range p.textProcessor.SplitText(articleText) {
+					processedText, refsSlice := p.textProcessor.ProcessText(text)
 					article.Text[titlesSlice[i]] = mongo.ArticlePart{
 						Text: processedText,
 						Refs: refsSlice,
 					}
 				}
-				if err := storage.InsertArticle(article); err != nil {
+				if err := p.storage.InsertArticle(article); err != nil {
 					log.Printf("error: %v\n", err)
 				} else {
 					articlesCount += 1
 				}
 				if articlesCount % 100000 == 0 {
-					log.Printf("loaded to mongo %d articles", articlesCount)
+					log.Printf("loaded %d articles to mongo", articlesCount)
 				}
 			}
 		default:

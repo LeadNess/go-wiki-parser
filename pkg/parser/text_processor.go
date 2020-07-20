@@ -29,7 +29,7 @@ type WikiTextProcessor struct {
 	multipleLinesRefsRe *regexp.Regexp
 }
 
-func NewWikiParser() *WikiTextProcessor {
+func NewWikiTextProcessor() *WikiTextProcessor {
 	return &WikiTextProcessor{
 		titlesRe:            regexp.MustCompile(`== [\w ]+ ==`),
 		refsRe:              regexp.MustCompile(`\[\[(.*?)]]`),

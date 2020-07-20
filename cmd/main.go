@@ -1,18 +1,47 @@
 package main
 
 import (
+	"flag"
 	"log"
+	"os"
 
+	"../pkg/mongodb"
 	"../pkg/parser"
 )
 
-const (
-	xmlPath = "/home/leadness/Загрузки/ruwiki-20200701-pages-articles-multistream.xml"
-	connStr = "mongodb://172.17.0.2:27017"
+var (
+	xmlPath string
+	connStr string
 )
 
+func init() {
+	flag.StringVar(&xmlPath, "xml-path", "", "path to wikipedia xml dump file")
+	flag.StringVar(&connStr, "conn-str", "mongodb://127.0.0.1:27017", "connection string for mongodb")
+}
+
 func main() {
-	if err := parser.ParseWikiXml(xmlPath, connStr); err != nil {
-		log.Fatal(err)
+	flag.Parse()
+	if xmlPath == "" {
+		flag.PrintDefaults()
+		return
 	}
+
+	file, err := os.Open(xmlPath)
+	if err != nil {
+		log.Printf("error on opening wikipedia xml dump file - %s\n", err)
+		flag.PrintDefaults()
+		return
+	}
+	defer file.Close()
+
+	storage, err := mongodb.NewStorage(connStr)
+	if err != nil {
+		log.Printf("error on connecting to mongodb - %s\n", err)
+		flag.PrintDefaults()
+		return
+	}
+
+	wikiParser := parser.NewWikiParser(file, storage)
+	log.Printf("start parsing %s...\n", xmlPath)
+	wikiParser.Parse()
 }
