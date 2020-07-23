@@ -128,9 +128,9 @@ func (w *WikiTextProcessor) ProcessText(text string) (string, []string) {
 	processedText := strings.Replace(text, "\n", "", -1)
 	processedText = strings.Trim(processedText, "=")
 
+	processedText = w.removeStrong(processedText)
 	processedText = w.removeCursive(processedText)
 	processedText = w.removeHTML(processedText)
-	processedText = w.removeStrong(processedText)
 	processedText = w.processFigureBrackets(processedText)
 
 	processedText, refsSlice := w.processRefs(processedText)
