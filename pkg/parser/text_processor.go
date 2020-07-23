@@ -11,7 +11,6 @@ type TextProcessor interface {
 	removeLists(text string) string
 	removeStrong(text string) string
 	removeInternetRefs(text string) string
-	removeMultipleLinesRefs(text string) string
 
 	processFigureBrackets(text string) string
 	processRefs(text string) (string, []string)
@@ -36,12 +35,12 @@ func NewWikiTextProcessor() *WikiTextProcessor {
 		titlesRe:            regexp.MustCompile(`== (.*?) ==`),
 		refsRe:              regexp.MustCompile(`\[\[(.*?)]]`),
 		internetRefsRe:      regexp.MustCompile(`\[(.*?)]`),
-		listsRe:             regexp.MustCompile(`{\|(.*?\n)\|}`),
+		listsRe:             regexp.MustCompile(`{\|(.*?)\|}`),
 		figureBracketsRe:    regexp.MustCompile(`{{(.*?)}}`),
 		htmlRe:              regexp.MustCompile(`<(.*?)>`),
 		cursiveRe:           regexp.MustCompile(`''(.*?)''`),
 		strongRe:            regexp.MustCompile(`'''(.*?)'''`),
-		multipleLinesRefsRe: regexp.MustCompile(`{{(^})}}`),
+		multipleLinesRefsRe: regexp.MustCompile(`\|(.*?)}}`),
 	}	
 }
 
@@ -76,7 +75,7 @@ func (w *WikiTextProcessor) processRefs(text string) (string, []string) {
 		}
 		processedText = strings.Replace(processedText, matchStr, textRef, 1)
 	}
-	return processedText, refsSlice
+	return w.multipleLinesRefsRe.ReplaceAllString(processedText, ""), refsSlice
 }
 
 func (w *WikiTextProcessor) removeLists(text string) string {
@@ -136,7 +135,7 @@ func (w *WikiTextProcessor) ProcessText(text string) (string, []string) {
 	processedText, refsSlice := w.processRefs(processedText)
 
 	processedText = w.removeLists(processedText)
-	processedText = w.removeMultipleLinesRefs(processedText)
 	processedText = w.removeInternetRefs(processedText)
+
 	return processedText, refsSlice
 }
