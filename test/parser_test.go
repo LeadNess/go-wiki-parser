@@ -1,16 +1,11 @@
-package test
+package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"../pkg/parser"
 )
 
-/*cursiveString := `'''Литва́''' ({{lang-lt|Lietuva}}), официальное название —
-		'''Лито́вская Респу́блика''' ({{lang-lt|Lietuvos Respublika}}) — [[государство]],
-		расположенное в [[Северная Европа|северной части]] [[Европа|Европы]]. Столица страны — [[Вильнюс]].`
-*/
 func TestRemovingStrong(t *testing.T) {
 	strongString := "'''Литва́''' , официальное название — '''Лито́вская Респу́блика'''."
 	processedStrongText := "Литва́ , официальное название — Лито́вская Респу́блика."
@@ -72,7 +67,30 @@ func TestProcessingFigureBrackets(t *testing.T) {
 	wikiParser := parser.NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(textWithFigureBrackets); text != processedText {
 		t.Error("Figure brackets in text are not processed")
-		fmt.Printf("%#v\n\n%#v\n", text, processedText)
 	}
 }
 
+func TestRemovingInternetRefs(t *testing.T) {
+	textWithInternetRefs := "Ссылка на сайт[https://osp.stat.gov.lt/]."
+	processedText := "Ссылка на сайт."
+	wikiParser := parser.NewWikiTextProcessor()
+	if text, _ := wikiParser.ProcessText(textWithInternetRefs); text != processedText {
+		t.Error("Internet refs in text are not removed")
+	}
+}
+
+func TestProcessingRefs(t *testing.T) {
+	textWithRefs := "Член [[ООН]] с 1991 года. Входит в [[Шенгенская зона|Шенгенскую зону]] и [[Еврозона|Еврозону]]."
+	processedText := "Член ООН с 1991 года. Входит в Шенгенскую зону и Еврозону."
+	textRefs := []string{"ООН", "Шенгенская зона", "Еврозона"}
+	wikiParser := parser.NewWikiTextProcessor()
+	if text, refs := wikiParser.ProcessText(textWithRefs); text != processedText {
+		t.Error("Refs in text are not processed")
+	} else {
+		for i := range textRefs {
+			if refs[i] != textRefs[i] {
+				t.Error("Refs in text are not processed")
+			}
+		}
+	}
+}

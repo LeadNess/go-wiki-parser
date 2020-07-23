@@ -59,10 +59,8 @@ func (p *WikiParser) Parse() {
 				}
 				articleText := field.Data
 				titlesSlice := p.textProcessor.GetTitles(articleText)
-				log.Printf("\n\ntitlesSlice: %v\narticlesText: %v\n", titlesSlice, len(p.textProcessor.SplitText(articleText)))
 				for i, text := range p.textProcessor.SplitText(articleText) {
 					processedText, refsSlice := p.textProcessor.ProcessText(text)
-					log.Printf("\n\n%#v\n%#v\n", processedText, refsSlice)
 					article.Text[titlesSlice[i]] = mongo.ArticlePart{
 						Text: processedText,
 						Refs: refsSlice,
