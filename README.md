@@ -1,5 +1,7 @@
 # go-wiki-parser
 
+[![Build Status](https://travis-ci.com/LeadNess/go-wiki-parser.svg?branch=master)](https://travis-ci.com/LeadNess/go-wiki-parser)
+
 ### Description
 
 Parses large xml wiki dump into MongoDB.
