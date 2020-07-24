@@ -1,14 +1,15 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"../pkg/parser"
 )
 
 func TestRemovingStrong(t *testing.T) {
-	strongString := "'''Литва́''' , официальное название — '''Лито́вская Респу́блика'''."
-	processedStrongText := "Литва́ , официальное название — Лито́вская Респу́блика."
+	strongString := "'''Литва''' , официальное название — '''Литовская Республика'''."
+	processedStrongText := "Литва , официальное название — Литовская Республика."
 	wikiParser := parser.NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(strongString); text != processedStrongText {
 		t.Error("Strong text does not processed")
@@ -25,11 +26,12 @@ func TestRemovingCursive(t *testing.T) {
 }
 
 func TestRemovingHtml(t *testing.T) {
-	HTMLString := "А тут будет ссылка - <ref name=\"ВКЛЭ2\">текст ссылки</ref>. И коммент <!-- КОММЕНТАРИЙ -->."
-	processedHTMLText := "А тут будет ссылка - текст ссылки. И коммент ."
+	HTMLString := "А тут будет ссылка - <!-- КОММЕНТАРИЙ <ref name=\"ВКЛЭ2\">текст ссылки</ref>. -->."
+	processedHTMLText := "А тут будет ссылка - ."
 	wikiParser := parser.NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(HTMLString); text != processedHTMLText {
 		t.Error("HTML text does not processed")
+		fmt.Printf("%#v\n%#v\n", text, processedHTMLText)
 	}
 }
 
@@ -76,6 +78,15 @@ func TestRemovingInternetRefs(t *testing.T) {
 	wikiParser := parser.NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(textWithInternetRefs); text != processedText {
 		t.Error("Internet refs in text are not removed")
+	}
+}
+
+func TestRemovingStresses(t *testing.T) {
+	textWithStresses := "Литва́ , официальное название — Лито́вская Респу́блика."
+	processedText := "Литва , официальное название — Литовская Республика."
+	wikiParser := parser.NewWikiTextProcessor()
+	if text, _ := wikiParser.ProcessText(textWithStresses); text != processedText {
+		t.Error("Stresses refs in text are not removed")
 	}
 }
 

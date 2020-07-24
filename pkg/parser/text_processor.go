@@ -7,6 +7,7 @@ import (
 
 type TextProcessor interface {
 	removeCursive(text string) string
+	removeComments(text string) string
 	removeHTML(text string) string
 	removeLists(text string) string
 	removeStrong(text string) string
@@ -23,6 +24,7 @@ type WikiTextProcessor struct {
 	refsRe              *regexp.Regexp
 	listsRe             *regexp.Regexp
 	figureBracketsRe    *regexp.Regexp
+	commentsRe          *regexp.Regexp
 	htmlRe              *regexp.Regexp
 	cursiveRe           *regexp.Regexp
 	strongRe            *regexp.Regexp
@@ -38,6 +40,7 @@ func NewWikiTextProcessor() *WikiTextProcessor {
 		listsRe:             regexp.MustCompile(`{\|(.*?)\|}`),
 		figureBracketsRe:    regexp.MustCompile(`{{(.*?)}}`),
 		htmlRe:              regexp.MustCompile(`<(.*?)>`),
+		commentsRe:          regexp.MustCompile(`<!--(.*?)-->`),
 		cursiveRe:           regexp.MustCompile(`''(.*?)''`),
 		strongRe:            regexp.MustCompile(`'''(.*?)'''`),
 		multipleLinesRefsRe: regexp.MustCompile(`\|(.*?)}}`),
@@ -111,6 +114,10 @@ func (w *WikiTextProcessor) removeStrong(text string) string {
 	return processedText
 }
 
+func (w *WikiTextProcessor) removeComments(text string) string {
+	return w.commentsRe.ReplaceAllString(text, "")
+}
+
 func (w *WikiTextProcessor) removeHTML(text string) string {
 	return w.htmlRe.ReplaceAllString(text, "")
 }
@@ -125,10 +132,13 @@ func (w *WikiTextProcessor) removeInternetRefs(text string) string {
 
 func (w *WikiTextProcessor) ProcessText(text string) (string, []string) {
 	processedText := strings.Replace(text, "\n", "", -1)
+	processedText = strings.Replace(processedText, "\a0", " ", -1)
+	processedText = strings.Replace(processedText, "\u0301", "", -1)
 	processedText = strings.Trim(processedText, "=")
 
 	processedText = w.removeStrong(processedText)
 	processedText = w.removeCursive(processedText)
+	processedText = w.removeComments(processedText)
 	processedText = w.removeHTML(processedText)
 	processedText = w.processFigureBrackets(processedText)
 
