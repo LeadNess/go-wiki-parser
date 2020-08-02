@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"../pkg/mongodb"
-	"../pkg/parser"
+	"github.com/LeadNess/go-wiki-parser/pkg/mongodb"
+	"github.com/LeadNess/go-wiki-parser/pkg/parser"
 )
 
 var (

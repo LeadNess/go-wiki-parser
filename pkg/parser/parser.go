@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	mongo "../mongodb"
+	mongo "github.com/LeadNess/go-wiki-parser/pkg/mongodb"
 )
 
 

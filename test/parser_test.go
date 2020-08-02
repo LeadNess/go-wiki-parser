@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"../pkg/parser"
+	"github.com/LeadNess/go-wiki-parser/pkg/parser"
 )
 
 func TestRemovingStrong(t *testing.T) {
