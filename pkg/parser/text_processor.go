@@ -146,6 +146,7 @@ func (w *WikiTextProcessor) ProcessText(text string) (string, []string) {
 
 	processedText = w.removeLists(processedText)
 	processedText = w.removeInternetRefs(processedText)
+	processedText = w.removeMultipleLinesRefs(processedText)
 
 	return processedText, refsSlice
 }

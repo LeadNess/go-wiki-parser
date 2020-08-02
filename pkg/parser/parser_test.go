@@ -1,17 +1,14 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
-
-	"github.com/LeadNess/go-wiki-parser/pkg/parser"
 )
 
 func TestRemovingStrong(t *testing.T) {
 	strongString := "'''Литва''' , официальное название — '''Литовская Республика'''."
 	processedStrongText := "Литва , официальное название — Литовская Республика."
-	wikiParser := parser.NewWikiTextProcessor()
-	if text, _ := wikiParser.ProcessText(strongString); text != processedStrongText {
+	wikiParser := NewWikiTextProcessor()
+	if text := wikiParser.removeStrong(strongString); text != processedStrongText {
 		t.Error("Strong text does not processed")
 	}
 }
@@ -19,8 +16,8 @@ func TestRemovingStrong(t *testing.T) {
 func TestRemovingCursive(t *testing.T) {
 	cursiveString := "Пример текста про Литву - «''Lytva''» и «''Litua''»."
 	processedCursiveText := "Пример текста про Литву - «Lytva» и «Litua»."
-	wikiParser := parser.NewWikiTextProcessor()
-	if text, _ := wikiParser.ProcessText(cursiveString); text != processedCursiveText {
+	wikiParser := NewWikiTextProcessor()
+	if text := wikiParser.removeCursive(cursiveString); text != processedCursiveText {
 		t.Error("Cursive text does not processed")
 	}
 }
@@ -28,10 +25,9 @@ func TestRemovingCursive(t *testing.T) {
 func TestRemovingHtml(t *testing.T) {
 	HTMLString := "А тут будет ссылка - <!-- КОММЕНТАРИЙ <ref name=\"ВКЛЭ2\">текст ссылки</ref>. -->."
 	processedHTMLText := "А тут будет ссылка - ."
-	wikiParser := parser.NewWikiTextProcessor()
+	wikiParser := NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(HTMLString); text != processedHTMLText {
 		t.Error("HTML text does not processed")
-		fmt.Printf("%#v\n%#v\n", text, processedHTMLText)
 	}
 }
 
@@ -53,7 +49,7 @@ func TestRemovingLists(t *testing.T) {
 * [[Шяуляйский уезд]]
 |}`
 	textWithoutList := "Территория Литвы разделена на 10 уездов."
-	wikiParser := parser.NewWikiTextProcessor()
+	wikiParser := NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(textWithList); text != textWithoutList {
 		t.Error("Lists in text are not removed")
 	}
@@ -66,7 +62,7 @@ func TestProcessingFigureBrackets(t *testing.T) {
 | Родительный падеж = Литвы
 }}`
 	processedText := "Площадь — 65300 км²."
-	wikiParser := parser.NewWikiTextProcessor()
+	wikiParser := NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(textWithFigureBrackets); text != processedText {
 		t.Error("Figure brackets in text are not processed")
 	}
@@ -75,8 +71,8 @@ func TestProcessingFigureBrackets(t *testing.T) {
 func TestRemovingInternetRefs(t *testing.T) {
 	textWithInternetRefs := "Ссылка на сайт[https://osp.stat.gov.lt/]."
 	processedText := "Ссылка на сайт."
-	wikiParser := parser.NewWikiTextProcessor()
-	if text, _ := wikiParser.ProcessText(textWithInternetRefs); text != processedText {
+	wikiParser := NewWikiTextProcessor()
+	if text := wikiParser.removeInternetRefs(textWithInternetRefs); text != processedText {
 		t.Error("Internet refs in text are not removed")
 	}
 }
@@ -84,7 +80,7 @@ func TestRemovingInternetRefs(t *testing.T) {
 func TestRemovingStresses(t *testing.T) {
 	textWithStresses := "Литва́ , официальное название — Лито́вская Респу́блика."
 	processedText := "Литва , официальное название — Литовская Республика."
-	wikiParser := parser.NewWikiTextProcessor()
+	wikiParser := NewWikiTextProcessor()
 	if text, _ := wikiParser.ProcessText(textWithStresses); text != processedText {
 		t.Error("Stresses refs in text are not removed")
 	}
@@ -94,8 +90,8 @@ func TestProcessingRefs(t *testing.T) {
 	textWithRefs := "Член [[ООН]] с 1991 года. Входит в [[Шенгенская зона|Шенгенскую зону]] и [[Еврозона|Еврозону]]."
 	processedText := "Член ООН с 1991 года. Входит в Шенгенскую зону и Еврозону."
 	textRefs := []string{"ООН", "Шенгенская зона", "Еврозона"}
-	wikiParser := parser.NewWikiTextProcessor()
-	if text, refs := wikiParser.ProcessText(textWithRefs); text != processedText {
+	wikiParser := NewWikiTextProcessor()
+	if text, refs := wikiParser.processRefs(textWithRefs); text != processedText {
 		t.Error("Refs in text are not processed")
 	} else {
 		for i := range textRefs {
