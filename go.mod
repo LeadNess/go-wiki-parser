@@ -1,4 +1,4 @@
-module github.com/LeadNess/go-wiki-parser
+module github.com/vnkrtv/go-wiki-parser
 
 go 1.14
 
